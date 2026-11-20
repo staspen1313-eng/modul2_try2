@@ -1,0 +1,38 @@
+[
+  {
+    "id": "maintenance-1",
+    "unitId": "unit-1",
+    "serviceDate": "2025-10-12",
+    "technicianName": "Олександр Коваль",
+    "filterReplaced": true,
+    "pressureDropKPa": 1.24,
+    "comment": "Планова заміна касет. Установка працює в штатному режимі."
+  },
+  {
+    "id": "maintenance-2",
+    "unitId": "unit-1",
+    "serviceDate": "2025-04-08",
+    "technicianName": "Ірина Мельник",
+    "filterReplaced": false,
+    "pressureDropKPa": 0.82,
+    "comment": "Огляд підшипників і контроль перепаду тиску."
+  },
+  {
+    "id": "maintenance-3",
+    "unitId": "unit-2",
+    "serviceDate": "2025-09-30",
+    "technicianName": "Дмитро Шевченко",
+    "filterReplaced": false,
+    "pressureDropKPa": 2.45,
+    "comment": "Зафіксовано підвищений перепад тиску. Рекомендовано заміну фільтрів."
+  },
+  {
+    "id": "maintenance-4",
+    "unitId": "unit-3",
+    "serviceDate": "2025-11-02",
+    "technicianName": "Олександр Коваль",
+    "filterReplaced": true,
+    "pressureDropKPa": 0.67,
+    "comment": "Заміна фільтрів та перевірка герметичності повітроводів."
+  }
+]

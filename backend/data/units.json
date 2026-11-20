@@ -1,0 +1,52 @@
+[
+  {
+    "id": "unit-1",
+    "serialNumber": "VU-2024-08",
+    "name": "Витяжна установка ВЦ-12",
+    "workshop": "Ливарний цех",
+    "airFlowCapacity": 12500,
+    "status": "В експлуатації",
+    "installationDate": "2024-02-15",
+    "description": "Центральна витяжна установка ливарної лінії. Фільтри класу F7."
+  },
+  {
+    "id": "unit-2",
+    "serialNumber": "VU-2023-14",
+    "name": "Припливна система ПС-08",
+    "workshop": "Цех гальваніки",
+    "airFlowCapacity": 8400,
+    "status": "Потребує ТО",
+    "installationDate": "2023-09-04",
+    "description": "Припливно-витяжна вентиляція з рекуперацією тепла."
+  },
+  {
+    "id": "unit-3",
+    "serialNumber": "VU-2024-21",
+    "name": "Аспіраційний агрегат АА-03",
+    "workshop": "Складальний цех",
+    "airFlowCapacity": 22000,
+    "status": "В експлуатації",
+    "installationDate": "2024-06-22",
+    "description": "Локальна аспірація зони механічної обробки деталей."
+  },
+  {
+    "id": "unit-4",
+    "serialNumber": "VU-2022-05",
+    "name": "Фільтрувальна станція ФС-18",
+    "workshop": "Фарбувальна лінія",
+    "airFlowCapacity": 36500,
+    "status": "Аварійна зупинка",
+    "installationDate": "2022-11-10",
+    "description": "Потрібна перевірка двигуна та заміна приводного ременя."
+  },
+  {
+    "id": "unit-5",
+    "serialNumber": "VU-2025-02",
+    "name": "Вентиляційна установка ВУ-06",
+    "workshop": "Ливарний цех",
+    "airFlowCapacity": 15800,
+    "status": "В експлуатації",
+    "installationDate": "2025-01-19",
+    "description": "Компактна установка для системи місцевої витяжки."
+  }
+]
