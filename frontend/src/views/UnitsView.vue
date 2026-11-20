@@ -1,48 +1,51 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  Activity, ArrowDown, ArrowDownUp, ArrowRight, ArrowUp, CheckCircle2,
+  ArrowDown, ArrowDownUp, ArrowRight, ArrowUp, CheckCircle2,
   CircleAlert, Clock3, Plus, Search, SlidersHorizontal, Wind, X
 } from '@lucide/vue'
-import { api } from '../api'
-import { formatCapacity, formatDate, statusClass, statuses, workshops } from '../utils'
+import { useSettingsStore } from '../stores/settings'
+import { useSystemStore } from '../stores/system'
+import { useUnitsStore } from '../stores/units'
+import { errorMessage, formatCapacity, formatDate, statusClass, statuses, workshops } from '../utils'
+import { parseSortMode, parseUnitStatus, parseWorkshop, type SortMode, type VentilationUnit } from '../types'
 
 const route = useRoute()
 const router = useRouter()
-const units = ref([])
-const loading = ref(true)
+const unitsStore = useUnitsStore()
+const settingsStore = useSettingsStore()
+const systemStore = useSystemStore()
+const { units, loading, lastFetchedAt } = storeToRefs(unitsStore)
+const { status: apiStatus } = storeToRefs(systemStore)
 const error = ref('')
-const defaultSort = () => localStorage.getItem('defaultUnitSort') || 'capacity-desc'
 const query = ref(String(route.query.search ?? ''))
-const workshop = ref(String(route.query.workshop ?? ''))
-const status = ref(String(route.query.status ?? ''))
-const sort = ref(String(route.query.sort ?? defaultSort()))
+const workshop = ref(parseWorkshop(route.query.workshop))
+const status = ref(parseUnitStatus(route.query.status))
+const sort = ref<SortMode>(parseSortMode(route.query.sort, settingsStore.defaultSort))
 const currentYear = new Date().getFullYear()
 const currentDate = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long' })
   .format(new Date()).toLocaleUpperCase('uk')
 
 async function loadUnits() {
-  loading.value = true
   error.value = ''
   try {
-    units.value = await api.getUnits()
+    await unitsStore.fetchUnits()
   } catch (cause) {
-    error.value = cause.message
-  } finally {
-    loading.value = false
+    error.value = errorMessage(cause)
   }
 }
 
-let syncTimer
+let syncTimer: ReturnType<typeof setTimeout> | undefined
 function syncUrl() {
-  clearTimeout(syncTimer)
+  if (syncTimer) clearTimeout(syncTimer)
   syncTimer = setTimeout(() => {
-    const nextQuery = {}
+    const nextQuery: Record<string, string> = {}
     if (query.value.trim()) nextQuery.search = query.value.trim()
     if (workshop.value) nextQuery.workshop = workshop.value
     if (status.value) nextQuery.status = status.value
-    if (sort.value !== defaultSort()) nextQuery.sort = sort.value
+    if (sort.value !== settingsStore.defaultSort) nextQuery.sort = sort.value
     router.replace({ name: 'units', query: nextQuery })
   }, 140)
 }
@@ -50,9 +53,9 @@ function syncUrl() {
 watch([query, workshop, status, sort], syncUrl)
 watch(() => route.query, (params) => {
   query.value = String(params.search ?? '')
-  workshop.value = String(params.workshop ?? '')
-  status.value = String(params.status ?? '')
-  sort.value = String(params.sort ?? defaultSort())
+  workshop.value = parseWorkshop(params.workshop)
+  status.value = parseUnitStatus(params.status)
+  sort.value = parseSortMode(params.sort, settingsStore.defaultSort)
 })
 onMounted(loadUnits)
 
@@ -83,13 +86,12 @@ function clearFilters() {
   workshop.value = ''
   status.value = ''
 }
-async function deleteUnit(unit) {
+async function deleteUnit(unit: VentilationUnit) {
   if (!window.confirm(`Видалити «${unit.name}» та всі записи його обслуговування?`)) return
   try {
-    await api.deleteUnit(unit.id)
-    units.value = units.value.filter((item) => item.id !== unit.id)
+    await unitsStore.deleteUnit(unit.id)
   } catch (cause) {
-    error.value = cause.message
+    error.value = errorMessage(cause)
   }
 }
 </script>
@@ -143,7 +145,7 @@ async function deleteUnit(unit) {
       <div v-if="error" class="error-banner"><CircleAlert :size="18" /><span>{{ error }}</span><button aria-label="Закрити" @click="error = ''"><X :size="16" /></button></div>
       <div v-if="loading" class="loading-state"><div v-for="n in 3" :key="n" class="skeleton-row"><span></span><i></i><i></i></div></div>
       <div v-else-if="visibleUnits.length" class="unit-list">
-        <article v-for="(unit, index) in visibleUnits" :key="unit.id" class="unit-card">
+        <article v-for="unit in visibleUnits" :key="unit.id" class="unit-card">
           <div class="unit-symbol"><Wind :size="21" /></div>
           <div class="unit-main">
             <RouterLink class="unit-name" :to="`/units/${unit.id}`">{{ unit.name }}<ArrowRight :size="15" /></RouterLink>
@@ -151,14 +153,14 @@ async function deleteUnit(unit) {
           </div>
           <div class="unit-capacity"><span>ПРОДУКТИВНІСТЬ</span><strong>{{ formatCapacity(unit.airFlowCapacity) }} <small>м³/год</small></strong><div class="capacity-track"><i :style="{ width: `${Math.max(8, unit.airFlowCapacity / maxCapacity * 100)}%` }"></i></div></div>
           <div class="unit-installed"><span>ВВЕДЕНО В ЕКСПЛУАТАЦІЮ</span><strong>{{ formatDate(unit.installationDate) }}</strong></div>
-          <div class="unit-status"><span :class="['status-badge', statusClass(unit.status)]"><i></i>{{ unit.status }}</span><span class="updated-label"><Activity :size="12" /> {{ index % 2 ? 'Оновлено сьогодні' : 'Оновлено 2 дні тому' }}</span></div>
+          <div class="unit-status"><span :class="['status-badge', statusClass(unit.status)]"><i></i>{{ unit.status }}</span></div>
           <div class="unit-actions"><RouterLink :to="`/units/${unit.id}`" :aria-label="`Відкрити ${unit.name}`"><ArrowRight :size="17" /></RouterLink><button :aria-label="`Видалити ${unit.name}`" @click="deleteUnit(unit)"><X :size="16" /></button></div>
         </article>
       </div>
       <div v-else class="empty-state"><div class="empty-icon"><Wind :size="25" /></div><h3>Установок не знайдено</h3><p>Спробуйте змінити фільтри або додайте нову установку.</p><button class="button button-secondary" @click="clearFilters">Скинути фільтри</button></div>
 
-      <div class="panel-footer"><span><i></i> Дані синхронізовано з сервером</span><span>Останнє оновлення: щойно</span></div>
+      <div class="panel-footer"><span><i></i> Дані синхронізовано з сервером</span><span>Оновлено: {{ lastFetchedAt ? lastFetchedAt.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '—' }}</span></div>
     </section>
-    <footer class="page-footer"><span>© {{ currentYear }} ВентСервіс · Інженерна служба</span><span>API підключено <i></i></span></footer>
+    <footer class="page-footer"><span>© {{ currentYear }} ВентСервіс · Інженерна служба</span><span :class="['api-footer-status', `api-${apiStatus}`]">{{ apiStatus === 'connected' ? 'API підключено' : apiStatus === 'error' ? 'API недоступний' : 'Перевірка API…' }} <i></i></span></footer>
   </div>
 </template>

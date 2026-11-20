@@ -1,22 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { ArrowRight, Building2, CircleAlert, Wind } from '@lucide/vue'
-import { api } from '../api'
-import { formatCapacity, statuses, workshops } from '../utils'
+import { useUnitsStore } from '../stores/units'
+import { errorMessage, formatCapacity, statuses, workshops } from '../utils'
 
-const units = ref([])
-const loading = ref(true)
+const unitsStore = useUnitsStore()
+const { units, loading } = storeToRefs(unitsStore)
 const error = ref('')
 
 async function loadUnits() {
-  loading.value = true
   error.value = ''
   try {
-    units.value = await api.getUnits()
+    await unitsStore.fetchUnits()
   } catch (cause) {
-    error.value = cause.message
-  } finally {
-    loading.value = false
+    error.value = errorMessage(cause)
   }
 }
 

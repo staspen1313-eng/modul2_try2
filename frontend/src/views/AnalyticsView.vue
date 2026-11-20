@@ -1,22 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { Activity, ArrowRight, CircleAlert, Clock3, Wind } from '@lucide/vue'
-import { api } from '../api'
-import { formatCapacity, statuses, workshops } from '../utils'
+import BaseSection from '../components/BaseSection.vue'
+import { useUnitsStore } from '../stores/units'
+import { errorMessage, formatCapacity, statuses, workshops } from '../utils'
 
-const units = ref([])
-const loading = ref(true)
+const unitsStore = useUnitsStore()
+const { units, loading } = storeToRefs(unitsStore)
 const error = ref('')
 
 async function loadUnits() {
-  loading.value = true
   error.value = ''
   try {
-    units.value = await api.getUnits()
+    await unitsStore.fetchUnits()
   } catch (cause) {
-    error.value = cause.message
-  } finally {
-    loading.value = false
+    error.value = errorMessage(cause)
   }
 }
 
@@ -61,8 +60,8 @@ const maximumWorkshopCapacity = computed(() => Math.max(...workshopSummary.value
       </div>
 
       <div class="analytics-grid">
-        <section class="equipment-panel analytics-panel">
-          <div class="panel-heading"><div><h2>За виробничими цехами</h2><p>Кількість обладнання та його продуктивність</p></div></div>
+        <BaseSection class="analytics-panel">
+          <template #header><div><h2>За виробничими цехами</h2><p>Кількість обладнання та його продуктивність</p></div></template>
           <div class="analytics-workshop-list">
             <article v-for="item in workshopSummary" :key="item.workshop" class="analytics-workshop">
               <div class="analytics-workshop-heading"><strong>{{ item.workshop }}</strong><span>{{ item.count }} установок</span></div>
@@ -70,10 +69,10 @@ const maximumWorkshopCapacity = computed(() => Math.max(...workshopSummary.value
               <div class="analytics-workshop-meta"><span>{{ formatCapacity(item.capacity) }} м³/год</span><RouterLink :to="{ name: 'units', query: { workshop: item.workshop } }">Відкрити список <ArrowRight :size="13" /></RouterLink></div>
             </article>
           </div>
-        </section>
+        </BaseSection>
 
-        <section class="equipment-panel analytics-panel">
-          <div class="panel-heading"><div><h2>Розподіл за станом</h2><p>Поточний статус вентиляційних установок</p></div></div>
+        <BaseSection class="analytics-panel">
+          <template #header><div><h2>Розподіл за станом</h2><p>Поточний статус вентиляційних установок</p></div></template>
           <div class="analytics-status-list">
             <div v-for="(item, index) in statusSummary" :key="item.status" class="analytics-status-row">
               <span :class="['status-badge', index === 0 ? 'status-ok' : index === 1 ? 'status-warning' : index === 2 ? 'status-danger' : 'status-muted']"><i></i>{{ item.status }}</span>
@@ -81,7 +80,7 @@ const maximumWorkshopCapacity = computed(() => Math.max(...workshopSummary.value
             </div>
           </div>
           <RouterLink class="analytics-footer-link" to="/units">Перейти до реєстру <ArrowRight :size="14" /></RouterLink>
-        </section>
+        </BaseSection>
       </div>
       <div class="detail-note"><Activity :size="16" /><span>Показники розраховані за актуальними даними реєстру.</span></div>
     </template>

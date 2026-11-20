@@ -1,12 +1,15 @@
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Activity, AirVent, ArrowUpRight, Bell, Boxes, ChevronDown, CircleHelp,
   ClipboardList, LayoutDashboard, Settings
 } from '@lucide/vue'
+import { useSystemStore } from './stores/system'
 
 const route = useRoute()
+const system = useSystemStore()
+let healthTimer: number | undefined
 const pageTitle = computed(() => {
   if (route.name === 'unit-detail') return 'Паспорт установки'
   if (route.name === 'unit-new') return 'Нова установка'
@@ -16,6 +19,15 @@ const pageTitle = computed(() => {
   if (route.name === 'workshops') return 'Виробничі цехи'
   if (route.name === 'settings') return 'Налаштування'
   return 'Реєстр установок'
+})
+
+onMounted(() => {
+  void system.checkHealth()
+  healthTimer = window.setInterval(system.checkHealth, 30000)
+})
+
+onBeforeUnmount(() => {
+  if (healthTimer !== undefined) window.clearInterval(healthTimer)
 })
 </script>
 
@@ -29,7 +41,7 @@ const pageTitle = computed(() => {
 
       <div class="sidebar-caption">РОБОЧИЙ ПРОСТІР</div>
       <nav class="side-nav">
-        <RouterLink class="nav-link" to="/units" :class="{ active: ['units', 'unit-detail', 'unit-new', 'unit-edit'].includes(route.name) }">
+        <RouterLink class="nav-link" to="/units" :class="{ active: route.name !== undefined && ['units', 'unit-detail', 'unit-new', 'unit-edit'].includes(String(route.name)) }">
           <LayoutDashboard :size="18" /><span>Установки</span>
         </RouterLink>
         <RouterLink class="nav-link" to="/maintenance" :class="{ active: route.name === 'maintenance' }">
@@ -64,7 +76,9 @@ const pageTitle = computed(() => {
       <header class="topbar">
         <div class="breadcrumbs"><span>ВентСервіс</span><span class="crumb-slash">/</span><strong>{{ pageTitle }}</strong></div>
         <div class="top-actions">
-          <span class="system-status"><i></i> Система працює</span>
+          <span class="system-status" :class="{ 'system-error': system.status === 'error', 'system-checking': system.status === 'checking' }">
+            <i></i>{{ system.status === 'connected' ? 'Система працює' : system.status === 'error' ? 'Немає зв’язку' : 'Перевірка…' }}
+          </span>
           <button class="icon-button" aria-label="Сповіщення"><Bell :size="18" /><i class="notification-dot"></i></button>
           <span class="top-avatar">ПС</span>
         </div>

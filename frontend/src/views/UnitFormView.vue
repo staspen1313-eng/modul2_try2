@@ -1,20 +1,33 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, CircleAlert, Save, X } from '@lucide/vue'
 import { api } from '../api'
-import { useFormGuard } from '../stores/formGuard'
-import { statuses, workshops } from '../utils'
+import { useFormGuardStore } from '../stores/formGuard'
+import { useUnitsStore } from '../stores/units'
+import { errorMessage } from '../utils'
+import { statuses, workshops, type UnitInput, type UnitStatus, type Workshop } from '../types'
+
+interface UnitForm {
+  serialNumber: string
+  name: string
+  workshop: Workshop | ''
+  airFlowCapacity: number | ''
+  status: UnitStatus
+  installationDate: string
+  description: string
+}
 
 const route = useRoute()
 const router = useRouter()
-const { isDirty } = useFormGuard()
+const formGuard = useFormGuardStore()
+const unitsStore = useUnitsStore()
 const editing = computed(() => route.name === 'unit-edit')
 const unitId = computed(() => route.params.id)
 const loading = ref(editing.value)
 const saving = ref(false)
 const error = ref('')
-const form = reactive({
+const form = reactive<UnitForm>({
   serialNumber: '', name: '', workshop: '', airFlowCapacity: '',
   status: 'В експлуатації', installationDate: '', description: ''
 })
@@ -26,7 +39,7 @@ function snapshot() {
   baseline.value = JSON.stringify(form)
 }
 function syncDirty() {
-  isDirty.value = dirty.value
+  formGuard.isDirty = dirty.value
 }
 watch(dirty, syncDirty)
 
@@ -37,7 +50,7 @@ onMounted(async () => {
     return
   }
   try {
-    const unit = await api.getUnit(unitId.value)
+    const unit = await api.getUnit(String(unitId.value))
     Object.assign(form, {
       serialNumber: unit.serialNumber,
       name: unit.name,
@@ -49,29 +62,32 @@ onMounted(async () => {
     })
     snapshot()
   } catch (cause) {
-    error.value = cause.message
+    error.value = errorMessage(cause)
   } finally {
     loading.value = false
   }
 })
 
-onBeforeUnmount(() => { isDirty.value = false })
+onBeforeUnmount(() => { formGuard.isDirty = false })
 
 async function save() {
   saving.value = true
   error.value = ''
   try {
-    const payload = {
+    const workshop = form.workshop
+    if (!workshop) throw new Error('Оберіть виробничий цех')
+    const payload: UnitInput = {
       ...form,
+      workshop,
       airFlowCapacity: Number(form.airFlowCapacity)
     }
     const unit = editing.value
-      ? await api.updateUnit(unitId.value, payload)
-      : await api.createUnit(payload)
-    isDirty.value = false
+      ? await unitsStore.updateUnit(String(unitId.value), payload)
+      : await unitsStore.createUnit(payload)
+    formGuard.isDirty = false
     await router.push(`/units/${unit.id}`)
   } catch (cause) {
-    error.value = cause.message
+    error.value = errorMessage(cause)
   } finally {
     saving.value = false
   }

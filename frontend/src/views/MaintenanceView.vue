@@ -1,31 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { ArrowRight, CalendarDays, CheckCircle2, CircleAlert, Gauge, Search, Wrench } from '@lucide/vue'
-import { api } from '../api'
-import { formatDate } from '../utils'
+import { useMaintenanceStore } from '../stores/maintenance'
+import { errorMessage, formatDate } from '../utils'
 
-const records = ref([])
+const maintenanceStore = useMaintenanceStore()
+const { records, loading } = storeToRefs(maintenanceStore)
 const query = ref('')
-const loading = ref(true)
 const error = ref('')
 
 async function loadRecords() {
-  loading.value = true
   error.value = ''
   try {
-    const units = await api.getUnits()
-    const details = await Promise.all(units.map((unit) => api.getUnit(unit.id)))
-    records.value = details
-      .flatMap((unit) => unit.maintenance.map((record) => ({
-        ...record,
-        unitName: unit.name,
-        serialNumber: unit.serialNumber
-      })))
-      .sort((a, b) => b.serviceDate.localeCompare(a.serviceDate))
+    await maintenanceStore.fetchRecords()
   } catch (cause) {
-    error.value = cause.message
-  } finally {
-    loading.value = false
+    error.value = errorMessage(cause)
   }
 }
 

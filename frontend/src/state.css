@@ -1,0 +1,43 @@
+.system-status.system-error {
+  color: #b94f49;
+}
+
+.system-status.system-error i {
+  background: #d66b61;
+}
+
+.system-status.system-checking {
+  color: #a97924;
+}
+
+.system-status.system-checking i {
+  background: #d9a646;
+}
+
+.api-footer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-footer-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.api-connected i {
+  background: #39ac78;
+}
+
+.api-error {
+  color: #b94f49;
+}
+
+.api-error i {
+  background: #d66b61;
+}
+
+.api-checking i {
+  background: #d9a646;
+}

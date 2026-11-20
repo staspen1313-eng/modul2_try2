@@ -1,7 +1,9 @@
-<script setup>
-import { onMounted, ref } from 'vue'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { CheckCircle2, CircleAlert, Database, RefreshCw, Save, Server, Settings2 } from '@lucide/vue'
-import { api } from '../api'
+import { useSettingsStore } from '../stores/settings'
+import { useSystemStore } from '../stores/system'
 
 const sortOptions = [
   { value: 'capacity-desc', label: 'Продуктивність — від більшої до меншої' },
@@ -9,30 +11,19 @@ const sortOptions = [
   { value: 'date-desc', label: 'Дата введення — від нових до старих' },
   { value: 'date-asc', label: 'Дата введення — від старих до нових' }
 ]
-const defaultSort = ref(localStorage.getItem('defaultUnitSort') || 'capacity-desc')
-const connection = ref('checking')
-const connectionError = ref('')
+const settingsStore = useSettingsStore()
+const systemStore = useSystemStore()
+const { defaultSort } = storeToRefs(settingsStore)
+const { status: connection, error: connectionError } = storeToRefs(systemStore)
 const saved = ref(false)
 
-async function checkConnection() {
-  connection.value = 'checking'
-  connectionError.value = ''
-  try {
-    await api.getHealth()
-    connection.value = 'connected'
-  } catch (cause) {
-    connection.value = 'error'
-    connectionError.value = cause.message
-  }
-}
-
 function saveSettings() {
-  localStorage.setItem('defaultUnitSort', defaultSort.value)
+  settingsStore.saveDefaultSort(defaultSort.value)
   saved.value = true
   setTimeout(() => { saved.value = false }, 2500)
 }
 
-onMounted(checkConnection)
+const checkConnection = systemStore.checkHealth
 </script>
 
 <template>

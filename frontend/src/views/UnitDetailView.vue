@@ -1,22 +1,26 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
-  ArrowLeft, ArrowUpRight, CalendarDays, Check, CheckCircle2, CircleAlert,
+  ArrowLeft, ArrowUpRight, Check, CheckCircle2, CircleAlert,
   ClipboardCheck, Clock3, Gauge, Pencil, Plus, Wind, Wrench, X
 } from '@lucide/vue'
 import { api } from '../api'
-import { formatCapacity, formatDate, statusClass } from '../utils'
+import { errorMessage, formatCapacity, formatDate, statusClass } from '../utils'
+import type { MaintenanceInput, UnitDetails } from '../types'
+
+type MaintenanceForm = Omit<MaintenanceInput, 'pressureDropKPa'> & {
+  pressureDropKPa: number | ''
+}
 
 const route = useRoute()
-const router = useRouter()
-const unit = ref(null)
+const unit = ref<UnitDetails | null>(null)
 const loading = ref(true)
 const error = ref('')
 const saving = ref(false)
 const showMaintenance = ref(false)
 const today = new Date().toISOString().slice(0, 10)
-const maintenance = ref({
+const maintenance = ref<MaintenanceForm>({
   serviceDate: today,
   technicianName: 'Олександр Коваль',
   filterReplaced: false,
@@ -28,9 +32,9 @@ async function loadUnit() {
   loading.value = true
   error.value = ''
   try {
-    unit.value = await api.getUnit(route.params.id)
+    unit.value = await api.getUnit(String(route.params.id))
   } catch (cause) {
-    error.value = cause.message
+    error.value = errorMessage(cause)
   } finally {
     loading.value = false
   }
@@ -38,15 +42,25 @@ async function loadUnit() {
 onMounted(loadUnit)
 
 async function saveMaintenance() {
+  if (!unit.value) return
   saving.value = true
   error.value = ''
   try {
-    await api.addMaintenance(unit.value.id, maintenance.value)
+    await api.addMaintenance(unit.value.id, {
+      ...maintenance.value,
+      pressureDropKPa: Number(maintenance.value.pressureDropKPa)
+    })
     showMaintenance.value = false
-    maintenance.value = { serviceDate: today, technicianName: 'Олександр Коваль', filterReplaced: false, pressureDropKPa: '', comment: '' }
+    maintenance.value = {
+      serviceDate: today,
+      technicianName: 'Олександр Коваль',
+      filterReplaced: false,
+      pressureDropKPa: '',
+      comment: ''
+    }
     await loadUnit()
   } catch (cause) {
-    error.value = cause.message
+    error.value = errorMessage(cause)
   } finally {
     saving.value = false
   }
